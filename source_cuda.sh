@@ -29,7 +29,7 @@ export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
 
 echo "✅ Now using CUDA ${CUDA_VERSION}"
 
-# Copy this to your .bashrc
+# Copy this to your .bashrc to auto-source the correct cuda version.
 # _cuda_versions() {
 #   local cur="${COMP_WORDS[COMP_CWORD]}"
 #   COMPREPLY=( $(compgen -W "$(ls -d /usr/local/cuda-* 2>/dev/null | grep -oP 'cuda-\K[0-9.]+')" -- "$cur") )
