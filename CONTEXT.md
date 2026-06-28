@@ -19,10 +19,18 @@ probe so it is safe to run alone or via the orchestrator.
 _Avoid_: module (too generic here), step, task.
 
 **Target**:
-The name a caller uses to ask for an installer — `base`, `docker`, `nvidia`,
-`cuda`, `aws`. The orchestrator maps a target to its installer, dependencies,
-and gate.
+The name a caller uses to ask for an installer — `base`, `devtools`, `gh`,
+`tailscale`, `vscode`, `chrome`, `docker`, `driver`, `nvidia`, `cuda`, `aws`.
+The orchestrator maps a target to its installer, dependencies, and gate.
 _Avoid_: package, job.
+
+**Driver target**:
+The `driver` target picks the NVIDIA driver from the GPU's PCI device id
+(10de:XXXX), not its lspci name — the id range is always present even when the
+pci.ids name DB is stale. Ada → `nvidia-driver-550`, Blackwell →
+`nvidia-driver-575-open` (open modules mandatory), everything else →
+`ubuntu-drivers autoinstall`. GPU-gated; `nvidia` depends on it.
+_Avoid_: gpu driver step, video driver.
 
 **Platform module**:
 `ark_platform` in `lib.sh` — the one place that answers "what box is this?"

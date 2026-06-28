@@ -75,10 +75,11 @@ ark_request_reboot() {
 # /etc/apt/sources.list.d/<name>.list, then refreshes apt. Re-running rewrites
 # both (cheap) so it is safe under the re-runnable contract.
 #
-# Note: only vendors whose repo is a single deb line fit this interface (docker).
-# nvidia-container-toolkit ships a remote .list and cuda ships a local .deb, so
-# those installers keep their own registration but still read the platform
-# module above — that is where candidate-3's win actually lands.
+# Auto-detects the key form: vendors ship either an armored .asc (docker,
+# chrome, microsoft, kitware — needs dearmor) or an already-binary keyring
+# (gh, tailscale — use as-is). Five adapters now share this seam.
+# Still bespoke: nvidia-container-toolkit (sed-rewritten upstream .list) and
+# cuda (local .deb) — they reuse the platform module but not this dance.
 add_apt_repo() {
   local name="$1" gpg_url="$2" repo_line="$3"
   ark_platform
@@ -86,7 +87,14 @@ add_apt_repo() {
   local listfile="/etc/apt/sources.list.d/${name}.list"
   ark_log "apt repo: ${name}"
   sudo install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL "$gpg_url" | sudo gpg --batch --yes --dearmor -o "$keyring"
+  local tmp; tmp="$(mktemp)"
+  curl -fsSL "$gpg_url" -o "$tmp"
+  if head -c 64 "$tmp" | grep -q 'BEGIN PGP'; then
+    sudo gpg --batch --yes --dearmor -o "$keyring" "$tmp"   # armored → dearmor
+  else
+    sudo install -m 0644 "$tmp" "$keyring"                  # already a binary keyring
+  fi
+  rm -f "$tmp"
   sudo chmod a+r "$keyring"
   echo "deb [arch=${ARK_ARCH} signed-by=${keyring}] ${repo_line}" \
     | sudo tee "$listfile" >/dev/null
