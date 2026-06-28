@@ -19,19 +19,25 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── target registry ─────────────────────────────────────────────────────────
 # Canonical order already respects the dependency edges below, so no topo sort.
-ALL_TARGETS=(base docker nvidia cuda aws)
+ALL_TARGETS=(base devtools gh tailscale vscode chrome docker driver nvidia cuda aws)
 
 installer_for() {
   case "$1" in
-    base)   echo "install_base.sh" ;;
-    docker) echo "setup_docker.sh" ;;
-    nvidia) echo "nvidia-container-toolkit.sh" ;;
-    cuda)   echo "cuda-install.sh" ;;
-    aws)    echo "aws-install.sh install" ;;   # install seam only; never configure
+    base)      echo "install_base.sh" ;;
+    devtools)  echo "install_devtools.sh" ;;
+    gh)        echo "install_gh.sh" ;;
+    tailscale) echo "install_tailscale.sh" ;;
+    vscode)    echo "install_vscode.sh" ;;
+    chrome)    echo "install_chrome.sh" ;;
+    docker)    echo "setup_docker.sh" ;;
+    driver)    echo "install_driver.sh" ;;
+    nvidia)    echo "nvidia-container-toolkit.sh" ;;
+    cuda)      echo "cuda-install.sh" ;;
+    aws)       echo "aws-install.sh install" ;;   # install seam only; never configure
   esac
 }
-needs_of()   { case "$1" in nvidia) echo "docker" ;; *) echo "" ;; esac; }
-gpu_gated()  { case "$1" in nvidia|cuda) return 0 ;; *) return 1 ;; esac; }
+needs_of()   { case "$1" in nvidia) echo "docker driver" ;; *) echo "" ;; esac; }
+gpu_gated()  { case "$1" in driver|nvidia|cuda) return 0 ;; *) return 1 ;; esac; }
 
 # ── arg parsing ─────────────────────────────────────────────────────────────
 DRY_RUN=0
@@ -40,7 +46,7 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    base|docker|nvidia|cuda|aws) requested+=("$arg") ;;
+    base|devtools|gh|tailscale|vscode|chrome|docker|driver|nvidia|cuda|aws) requested+=("$arg") ;;
     *) ark_err "unknown target: $arg (known: ${ALL_TARGETS[*]})"; exit 2 ;;
   esac
 done
