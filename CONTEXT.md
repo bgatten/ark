@@ -20,7 +20,7 @@ _Avoid_: module (too generic here), step, task.
 
 **Target**:
 The name a caller uses to ask for an installer — `base`, `devtools`, `gh`,
-`tailscale`, `vscode`, `chrome`, `docker`, `driver`, `nvidia`, `cuda`, `aws`.
+`tailscale`, `vscode`, `chrome`, `claude`, `docker`, `driver`, `nvidia`, `cuda`, `aws`.
 The orchestrator maps a target to its installer, dependencies, and gate.
 _Avoid_: package, job.
 

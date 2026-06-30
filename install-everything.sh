@@ -19,7 +19,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── target registry ─────────────────────────────────────────────────────────
 # Canonical order already respects the dependency edges below, so no topo sort.
-ALL_TARGETS=(base devtools gh tailscale vscode chrome docker driver nvidia cuda aws)
+ALL_TARGETS=(base devtools gh tailscale vscode chrome claude docker driver nvidia cuda aws)
 
 installer_for() {
   case "$1" in
@@ -29,6 +29,7 @@ installer_for() {
     tailscale) echo "install_tailscale.sh" ;;
     vscode)    echo "install_vscode.sh" ;;
     chrome)    echo "install_chrome.sh" ;;
+    claude)    echo "install_claude.sh" ;;
     docker)    echo "setup_docker.sh" ;;
     driver)    echo "install_driver.sh" ;;
     nvidia)    echo "nvidia-container-toolkit.sh" ;;
@@ -46,7 +47,7 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    base|devtools|gh|tailscale|vscode|chrome|docker|driver|nvidia|cuda|aws) requested+=("$arg") ;;
+    base|devtools|gh|tailscale|vscode|chrome|claude|docker|driver|nvidia|cuda|aws) requested+=("$arg") ;;
     *) ark_err "unknown target: $arg (known: ${ALL_TARGETS[*]})"; exit 2 ;;
   esac
 done
