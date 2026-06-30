@@ -39,8 +39,9 @@ running it standalone is safe.
 |------------|----------------------------------------------------------------|-------|
 | `base`     | htop, foxglove-studio                                          | every box |
 | `devtools` | C++ toolchain (build-essential, ninja, ccache, gdb, …); recent cmake from Kitware | |
-| `node`     | Node.js LTS (NodeSource)                                       | carries `npx` for the skills step |
+| `node`     | Node.js LTS (NodeSource)                                       | carries `npx` for the `claude-config` skills step |
 | `claude`   | Claude Code (Anthropic apt repo, `stable` channel)            | native binary; no Node needed |
+| `claude-config` | CLAUDE.md + settings.json symlinks into ark; personal agent skills | shared Claude config across machines; needs `claude` + `node` |
 | `gh`       | GitHub CLI                                                     | |
 | `tailscale`| Tailscale VPN                                                 | |
 | `vscode`   | VS Code (Microsoft apt repo)                                  | |
@@ -54,21 +55,25 @@ running it standalone is safe.
 Updates ride the normal `apt upgrade` path — apt-installed targets, including
 Claude Code on the `stable` channel, don't self-update.
 
-## Claude Code skills (manual step)
+## Claude Code config + skills (`claude-config`)
 
-[Matt Pocock's agent skills](https://github.com/mattpocock/skills) are a
-*per-user* addition to `~/.claude`, installed with an interactive CLI — so they
-stay out of the orchestrator. Run the `node` target first (it provides `npx`),
-then:
+The `claude-config` target keeps every box's Claude Code identical. It symlinks
+`~/.claude/CLAUDE.md` and `~/.claude/settings.json` to the canonical copies in
+[`claude/`](claude/) — edit once, commit, pull anywhere — and installs the
+personal agent skills pinned in `claude/skill-lock.json`
+([Matt Pocock's](https://github.com/mattpocock/skills) plus
+[Vercel's](https://github.com/vercel-labs/skills) `find-skills`) for Claude
+Code, non-interactively. `settings.json` also carries the plugin + marketplace
+list, so Claude Code reinstalls its plugin skills on its own.
 
 ```bash
-./install-everything.sh node claude     # Claude Code + a Node runtime
-npx skills@latest add mattpocock/skills # interactive: pick skills, then run the bundled setup
+./install-everything.sh claude-config   # pulls in `claude` + `node` first
 ```
 
-The CLI lets you select which skills to add and finishes with a
-`/setup-…-skills` step where you point it at your issue tracker, triage labels,
-and docs location. Re-run the `npx` command any time to add more.
+It depends on `claude` (the app) and `node` (for the skills CLI's `npx`), so the
+orchestrator runs those first. The skills step self-skips if `npx` or `python3`
+is missing — install them and re-run. To change the skill set, edit it with
+`npx skills@latest add|remove …`, refresh `claude/skill-lock.json`, and commit.
 
 ## Operational tools
 

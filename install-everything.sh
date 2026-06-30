@@ -19,26 +19,27 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── target registry ─────────────────────────────────────────────────────────
 # Canonical order already respects the dependency edges below, so no topo sort.
-ALL_TARGETS=(base devtools node claude gh tailscale vscode chrome docker driver nvidia cuda aws)
+ALL_TARGETS=(base devtools node claude claude-config gh tailscale vscode chrome docker driver nvidia cuda aws)
 
 installer_for() {
   case "$1" in
-    base)      echo "install_base.sh" ;;
-    devtools)  echo "install_devtools.sh" ;;
-    node)      echo "install_node.sh" ;;
-    claude)    echo "install_claude.sh" ;;
-    gh)        echo "install_gh.sh" ;;
-    tailscale) echo "install_tailscale.sh" ;;
-    vscode)    echo "install_vscode.sh" ;;
-    chrome)    echo "install_chrome.sh" ;;
-    docker)    echo "setup_docker.sh" ;;
-    driver)    echo "install_driver.sh" ;;
-    nvidia)    echo "nvidia-container-toolkit.sh" ;;
-    cuda)      echo "cuda-install.sh" ;;
-    aws)       echo "aws-install.sh install" ;;   # install seam only; never configure
+    base)          echo "install_base.sh" ;;
+    devtools)      echo "install_devtools.sh" ;;
+    node)          echo "install_node.sh" ;;
+    claude)        echo "install_claude.sh" ;;
+    claude-config) echo "install_claude_config.sh" ;;
+    gh)            echo "install_gh.sh" ;;
+    tailscale)     echo "install_tailscale.sh" ;;
+    vscode)        echo "install_vscode.sh" ;;
+    chrome)        echo "install_chrome.sh" ;;
+    docker)        echo "setup_docker.sh" ;;
+    driver)        echo "install_driver.sh" ;;
+    nvidia)        echo "nvidia-container-toolkit.sh" ;;
+    cuda)          echo "cuda-install.sh" ;;
+    aws)           echo "aws-install.sh install" ;;   # install seam only; never configure
   esac
 }
-needs_of()   { case "$1" in nvidia) echo "docker driver" ;; *) echo "" ;; esac; }
+needs_of()   { case "$1" in nvidia) echo "docker driver" ;; claude-config) echo "claude node" ;; *) echo "" ;; esac; }
 gpu_gated()  { case "$1" in driver|nvidia|cuda) return 0 ;; *) return 1 ;; esac; }
 
 # ── arg parsing ─────────────────────────────────────────────────────────────
@@ -48,7 +49,7 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    base|devtools|node|claude|gh|tailscale|vscode|chrome|docker|driver|nvidia|cuda|aws) requested+=("$arg") ;;
+    base|devtools|node|claude|claude-config|gh|tailscale|vscode|chrome|docker|driver|nvidia|cuda|aws) requested+=("$arg") ;;
     *) ark_err "unknown target: $arg (known: ${ALL_TARGETS[*]})"; exit 2 ;;
   esac
 done
@@ -102,7 +103,7 @@ for t in "${plan[@]}"; do run_target "$t"; done
 # ── summary ─────────────────────────────────────────────────────────────────
 echo
 ark_log "summary"
-for t in "${plan[@]}"; do printf '  %-8s %s\n' "$t" "${status[$t]:-?}"; done
+for t in "${plan[@]}"; do printf '  %-13s %s\n' "$t" "${status[$t]:-?}"; done
 if [ "$DRY_RUN" -eq 0 ] && [ -s "$ARK_REBOOT_FILE" ]; then
   echo
   ark_warn "REBOOT REQUIRED before the box is fully converged:"

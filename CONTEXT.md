@@ -20,9 +20,9 @@ _Avoid_: module (too generic here), step, task.
 
 **Target**:
 The name a caller uses to ask for an installer — `base`, `devtools`, `node`,
-`claude`, `gh`, `tailscale`, `vscode`, `chrome`, `docker`, `driver`, `nvidia`,
-`cuda`, `aws`. The orchestrator maps a target to its installer, dependencies,
-and gate.
+`claude`, `claude-config`, `gh`, `tailscale`, `vscode`, `chrome`, `docker`,
+`driver`, `nvidia`, `cuda`, `aws`. The orchestrator maps a target to its
+installer, dependencies, and gate.
 _Avoid_: package, job.
 
 **Claude target**:
@@ -33,16 +33,27 @@ _Avoid_: claude-code step.
 
 **Node target**:
 The `node` target installs Node.js LTS from NodeSource. It exists only to carry
-`npx`, which the Claude Code **skills step** needs. It is independent of the
-`claude` target.
+`npx`, which the `claude-config` target's skills step needs. It is independent
+of the `claude` target.
 _Avoid_: nodejs step, npm install.
 
+**Claude-config target**:
+The `claude-config` target makes a box's Claude Code match every other box. It
+symlinks `~/.claude/CLAUDE.md` and `~/.claude/settings.json` to the canonical
+copies in `claude/` — single source of truth, edit once and pull anywhere — and
+installs the personal agent skills listed in `claude/skill-lock.json`
+non-interactively (`npx skills@latest add <source> -y -a claude-code -s …`,
+grouped by source). `settings.json` carries the plugin + marketplace list, so
+Claude Code reinstalls the plugin skills itself. Depends on `claude` (the app it
+configures) and `node` (the `npx` runtime).
+_Avoid_: dotfiles step, config installer.
+
 **Skills step**:
-A *manual, per-user* step — not an installer — that adds Matt Pocock's agent
-skills to `~/.claude` via `npx skills@latest add mattpocock/skills`. It is
-interactive (you select skills, then run the bundled setup), so it stays out of
-the orchestrator. Needs the `node` target first. See README.
-_Avoid_: skills installer, skills target.
+Now part of the `claude-config` target and automated — *not* the manual,
+interactive step it once was. A skill list read from the lockfile plus `-y`
+makes `npx skills@latest add` run unattended, so it belongs in the orchestrator.
+Needs the `node` target for `npx`.
+_Avoid_: skills installer (as a separate target), manual skills step.
 
 **Driver target**:
 The `driver` target picks the NVIDIA driver from the GPU's PCI device id
