@@ -8,21 +8,26 @@ set -euo pipefail
 #      (single source of truth): ~/.claude/CLAUDE.md and ~/.claude/settings.json
 #      become symlinks into ark/claude/. Edit once, commit, pull anywhere.
 #      settings.json carries enabledPlugins + extraKnownMarketplaces, so Claude
-#      Code reinstalls the plugin skills (superpowers, karpathy, …) on its own.
-#   2. Install the personal skills recorded in claude/skill-lock.json
-#      (caveman, diagnose, …) for Claude Code, non-interactively.
+#      Code installs the plugin skills (superpowers, karpathy, …) on its own on
+#      first launch.
+#   2. Install the personal skills vendored in claude/skills/ (caveman, diagnose,
+#      …) by copying them into ~/.claude/skills.
 #
-# Depends on the `claude` (the app it configures) and `node` (the `npx` runtime
-# the skills CLI needs) targets — the orchestrator pulls those in first. The
-# skills step also probes for npx/python3 and self-skips with a note if either
-# is missing, so running this standalone on a bare box is safe.
+# The skills are vendored — committed as real files in the repo — rather than
+# refetched by name from upstream. Upstream skill repos rename and remove skills;
+# a name-based reinstall (npx skills add -s …) fails the whole batch on the first
+# mismatch. Vendoring makes ark the source of truth: drift-proof and offline.
+# To refresh the set: copy ~/.claude/skills into claude/skills/ and commit.
+#
+# Depends only on `claude` (the app it configures) — the orchestrator pulls it
+# in first. No node/npx: copying files needs neither.
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib.sh
 . "$here/lib.sh"
 
 CLAUDE_DIR="$HOME/.claude"
 PAYLOAD="$here/claude"
-LOCK="$PAYLOAD/skill-lock.json"
+SKILLS_SRC="$PAYLOAD/skills"
 
 # Probe: a path already points at the same file we'd link to.
 link_into_claude() {            # $1 = filename under the payload
@@ -38,33 +43,19 @@ link_into_claude() {            # $1 = filename under the payload
   ark_log "claude-config: linked ${name} -> ark"
 }
 
+# Copy each vendored skill into ~/.claude/skills. Probe per skill: present -> skip
+# (to refresh one, delete its dir and re-run — the usual ark idiom).
 install_skills() {
-  if ! have npx;     then ark_warn "claude-config: npx not found (run the node target) — skipping personal skills"; return 0; fi
-  if ! have python3; then ark_warn "claude-config: python3 not found — skipping personal skills; install python3, then re-run"; return 0; fi
-  [ -f "$LOCK" ] || { ark_warn "claude-config: no skill-lock.json — skipping personal skills"; return 0; }
-
-  # Probe: every locked skill already present for Claude Code?
-  local names missing=0 n
-  names="$(python3 -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))["skills"]))' "$LOCK")"
-  for n in $names; do [ -e "$CLAUDE_DIR/skills/$n" ] || missing=1; done
-  if [ "$missing" -eq 0 ]; then ark_log "claude-config: personal skills present — skipping"; return 0; fi
-
-  ark_log "claude-config: installing personal skills via the skills manager (target agent: claude-code)"
-  # Skills span >1 source (mattpocock/skills, vercel-labs/skills); install each
-  # source's locked set. Names are read live from the lockfile so this tracks it.
-  while IFS=$'\t' read -r src csv; do
-    [ -n "$src" ] || continue
-    ark_log "claude-config:   ${src} -> ${csv}"
-    npx --yes skills@latest add "$src" -g -y -a claude-code -s "$csv"
-  done < <(python3 -c '
-import json, sys, collections
-skills = json.load(open(sys.argv[1]))["skills"]
-by_source = collections.defaultdict(list)
-for name, info in skills.items():
-    by_source[info["source"]].append(name)
-for src, names in by_source.items():
-    print(src + "\t" + ",".join(names))
-' "$LOCK")
+  [ -d "$SKILLS_SRC" ] || { ark_warn "claude-config: no vendored skills dir — skipping"; return 0; }
+  mkdir -p "$CLAUDE_DIR/skills"
+  local d n new=0
+  for d in "$SKILLS_SRC"/*/; do
+    n="$(basename "$d")"
+    [ -e "$CLAUDE_DIR/skills/$n" ] && continue
+    cp -r "$d" "$CLAUDE_DIR/skills/$n"
+    new=$((new + 1))
+  done
+  ark_log "claude-config: vendored skills -> ~/.claude/skills (${new} new, $(ls -1 "$SKILLS_SRC" | wc -l) total)"
 }
 
 install_claude_config() {
