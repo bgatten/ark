@@ -32,28 +32,28 @@ binary and does **not** need Node — so `claude` carries no dependency edge.
 _Avoid_: claude-code step.
 
 **Node target**:
-The `node` target installs Node.js LTS from NodeSource. It exists only to carry
-`npx`, which the `claude-config` target's skills step needs. It is independent
-of the `claude` target.
+The `node` target installs Node.js LTS from NodeSource for its `npx`/`npm`
+runtime. Independent of `claude` and `claude-config` — a standalone convenience
+target, not a dependency of either.
 _Avoid_: nodejs step, npm install.
 
 **Claude-config target**:
 The `claude-config` target makes a box's Claude Code match every other box. It
 symlinks `~/.claude/CLAUDE.md` and `~/.claude/settings.json` to the canonical
 copies in `claude/` — single source of truth, edit once and pull anywhere — and
-installs the personal agent skills listed in `claude/skill-lock.json`
-non-interactively (`npx skills@latest add <source> -y -a claude-code -s …`,
-grouped by source). `settings.json` carries the plugin + marketplace list, so
-Claude Code reinstalls the plugin skills itself. Depends on `claude` (the app it
-configures) and `node` (the `npx` runtime).
+copies the **vendored** personal agent skills from `claude/skills/` into
+`~/.claude/skills`. `settings.json` carries the plugin + marketplace list, so
+Claude Code installs the plugin skills itself on first launch. Depends only on
+`claude` (the app it configures).
 _Avoid_: dotfiles step, config installer.
 
-**Skills step**:
-Now part of the `claude-config` target and automated — *not* the manual,
-interactive step it once was. A skill list read from the lockfile plus `-y`
-makes `npx skills@latest add` run unattended, so it belongs in the orchestrator.
-Needs the `node` target for `npx`.
-_Avoid_: skills installer (as a separate target), manual skills step.
+**Vendored skills**:
+The personal agent skills are committed as real files under `claude/skills/`,
+not refetched by name from upstream. Upstream skill repos rename/remove skills,
+so a name-based reinstall fails the whole batch on the first mismatch; vendoring
+makes ark the source of truth — drift-proof, offline, and free of the `node`/
+`npx` dependency. Refresh by copying `~/.claude/skills` back into `claude/skills/`.
+_Avoid_: skill-lock, pinned skills, skills manifest.
 
 **Driver target**:
 The `driver` target picks the NVIDIA driver from the GPU's PCI device id
