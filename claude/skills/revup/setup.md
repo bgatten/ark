@@ -12,19 +12,28 @@ git --version        # expect >= 2.43
 
 ## 2. Install revup
 
+PyPI's latest (0.4.0) is well behind the repo, so install `main` from source —
+pipx keeps it isolated on your PATH:
+
 ```
-python3 -m pip install revup
+pipx install git+https://github.com/Skydio/revup.git
 revup -h             # verify
 ```
+(Plain `pip install revup` works too but pins you to 0.4.0, which lacks e.g.
+`amend --no-edit`, `restack --squash`, `upload --pr-body-source`, and uses the
+older `github_oauth` config key instead of `forge_oauth`.)
 
 ## 3. Authenticate to GitHub
 
 Create a Personal Access Token with **repo** scope:
 <https://github.com/settings/tokens/new?scopes=repo>
 
+Run this **from inside any git repo** (revup resolves the repo root on startup,
+so `~` won't work); it stores the token globally in `~/.revupconfig`, so once is enough:
+
 ```
 revup config forge_oauth
-# paste the token at the prompt
+# paste the token at the secure prompt
 ```
 GitHub Enterprise: add `--forge-url your.host` (or set `forge_url` in config).
 
