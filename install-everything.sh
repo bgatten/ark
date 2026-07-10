@@ -39,7 +39,7 @@ installer_for() {
     aws)           echo "aws-install.sh install" ;;   # install seam only; never configure
   esac
 }
-needs_of()   { case "$1" in nvidia) echo "docker driver" ;; claude-config) echo "claude node" ;; *) echo "" ;; esac; }
+needs_of()   { case "$1" in nvidia) echo "docker driver" ;; claude-config) echo "claude" ;; *) echo "" ;; esac; }
 gpu_gated()  { case "$1" in driver|nvidia|cuda) return 0 ;; *) return 1 ;; esac; }
 
 # ── arg parsing ─────────────────────────────────────────────────────────────
